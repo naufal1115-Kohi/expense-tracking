@@ -579,6 +579,17 @@
             background: #dc2626;
         }
 
+        .currency-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
         .whitelist-section {
             margin-top: 20px;
             padding: 20px;
@@ -813,6 +824,13 @@
                 <div class="form-group">
                     <label class="form-label">Amount</label>
                     <input type="number" class="form-input" id="transAmount" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Currency</label>
+                    <select class="form-select" id="transCurrency" required>
+                        <option value="MVR">MVR (Maldivian Rufiyaa)</option>
+                        <option value="USD">USD (US Dollar)</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Category</label>
@@ -1071,6 +1089,12 @@
             
             if (savedTransactions) {
                 transactions = JSON.parse(savedTransactions);
+                // Add currency field to old transactions that don't have it
+                transactions = transactions.map(t => ({
+                    ...t,
+                    currency: t.currency || 'USD' // Default to USD for old transactions
+                }));
+                saveTransactions(); // Save updated transactions
             }
             
             if (savedBudgets) {
@@ -1147,25 +1171,37 @@
                 return;
             }
 
-            list.innerHTML = transactions.slice(0, 10).map(t => `
+            list.innerHTML = transactions.slice(0, 10).map(t => {
+                const currencySymbol = t.currency === 'USD' ? '$' : 'MVR ';
+                const currencyPosition = t.currency === 'USD' ? 'before' : 'after';
+                const sign = t.type === 'expense' ? '-' : '+';
+                const amountDisplay = currencyPosition === 'before' 
+                    ? `${sign}${currencySymbol}${t.amount.toFixed(2)}`
+                    : `${sign}${t.amount.toFixed(2)} ${currencySymbol}`;
+                
+                return `
                 <div class="transaction-item">
                     <div class="transaction-info">
                         <div class="transaction-icon" style="background: ${CATEGORIES[t.category].color}20">
                             ${CATEGORIES[t.category].icon}
                         </div>
                         <div class="transaction-details">
-                            <div class="transaction-category">${t.category}</div>
+                            <div class="transaction-category">
+                                ${t.category}
+                                <span class="currency-badge">${t.currency}</span>
+                            </div>
                             <div class="transaction-date">${new Date(t.date).toLocaleDateString()}</div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">
                         <div class="transaction-amount ${t.type}">
-                            ${t.type === 'expense' ? '-' : '+'}$${t.amount.toFixed(2)}
+                            ${amountDisplay}
                         </div>
                         <button class="delete-btn" onclick="deleteTransaction(${t.id})">×</button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Update budget list
@@ -1240,7 +1276,14 @@
                 return;
             }
 
-            list.innerHTML = expenses.map((t, index) => `
+            list.innerHTML = expenses.map((t, index) => {
+                const currencySymbol = t.currency === 'USD' ? '$' : 'MVR ';
+                const currencyPosition = t.currency === 'USD' ? 'before' : 'after';
+                const amountDisplay = currencyPosition === 'before' 
+                    ? `${currencySymbol}${t.amount.toFixed(2)}`
+                    : `${t.amount.toFixed(2)} ${currencySymbol}`;
+                
+                return `
                 <div class="transaction-item">
                     <div class="transaction-info">
                         <div style="width: 32px; height: 32px; border-radius: 8px; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
@@ -1251,7 +1294,11 @@
                             <div class="transaction-date">${new Date(t.date).toLocaleDateString()}</div>
                         </div>
                     </div>
-                    <div class="transaction-amount expense">$${t.amount.toFixed(2)}</div>
+                    <div class="transaction-amount expense">${amountDisplay}</div>
+                </div>
+                `;
+            }).join('');
+        }
                 </div>
             `).join('');
         }
@@ -1314,6 +1361,7 @@
                 id: Date.now(),
                 type: currentTransactionType,
                 amount: parseFloat(document.getElementById('transAmount').value),
+                currency: document.getElementById('transCurrency').value,
                 category: document.getElementById('transCategory').value,
                 date: document.getElementById('transDate').value,
                 note: document.getElementById('transNote').value || ''
