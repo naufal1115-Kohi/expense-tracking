@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google SDK Test</title>
+</head>
+<body>
+    <h1>Testing Google SDK</h1>
+    <div id="status">Loading...</div>
+    <div id="googleSignInBtn"></div>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        const CLIENT_ID = '724165740780-vjktr36v2rs5k7tquhpijg9vmis4ouf3.apps.googleusercontent.com';
+        
+        window.onload = function() {
+            document.getElementById('status').innerHTML = 'Page loaded. Waiting for Google SDK...';
+            
+            setTimeout(function() {
+                if (typeof google !== 'undefined') {
+                    document.getElementById('status').innerHTML = 'Google SDK loaded! Initializing...';
+                    
+                    google.accounts.id.initialize({
+                        client_id: CLIENT_ID,
+                        callback: function(response) {
+                            document.getElementById('status').innerHTML = 'Login successful! Token: ' + response.credential.substring(0, 50) + '...';
+                        }
+                    });
+                    
+                    google.accounts.id.renderButton(
+                        document.getElementById('googleSignInBtn'),
+                        { theme: 'filled_blue', size: 'large' }
+                    );
+                    
+                    document.getElementById('status').innerHTML += '<br>Button rendered!';
+                } else {
+                    document.getElementById('status').innerHTML = 'ERROR: Google SDK not loaded!<br>The script at https://accounts.google.com/gsi/client is not loading.<br>This might be a network issue or browser blocking it.';
+                }
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
